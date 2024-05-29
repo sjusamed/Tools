@@ -2,8 +2,9 @@ import digitalocean
 import time
 import paramiko
 from scp import SCPClient
-import numpy as np  # Import numpy for splitting CSV
+import numpy as np
 import os
+import pandas as pd
 
 # Replace with your DigitalOcean API token
 TOKEN = 'your_digitalocean_api_token'
@@ -55,8 +56,12 @@ def wait_for_droplets(droplets):
 def split_csv(num_chunks):
     df = pd.read_csv(CSV_PATH)
     chunks = np.array_split(df, num_chunks)
+    filenames = []
     for i, chunk in enumerate(chunks):
-        chunk.to_csv(f'mck_part_{i}.csv', index=False)
+        filename = f'mck_part_{i}.csv'
+        chunk.to_csv(filename, index=False)
+        filenames.append(filename)
+    return filenames
 
 # Function to upload files and run the script on each droplet
 def setup_and_run_script(droplet, csv_filename):
@@ -110,15 +115,11 @@ def main():
         print(f'Droplet {droplet.name} IP: {droplet.ip_address}')
 
     # Split the CSV file
-    split_csv(NUM_DROPLETS)
+    csv_filenames = split_csv(NUM_DROPLETS)
 
     # Setup and run the script on each droplet
     for i, droplet in enumerate(droplets):
-        csv_filename = f'mck_part_{i}.csv'
-        setup_and_run_script(droplet, csv_filename)
+        setup_and_run_script(droplet, csv_filenames[i])
 
 if __name__ == '__main__':
     main()
-
-
-# to run the code, python deploy_scrapers.py
